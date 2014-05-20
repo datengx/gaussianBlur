@@ -27,12 +27,13 @@ timespec diff(timespec start, timespec end)
 
 int main ( int argc, char *argv[] )
 {
-	
+
     timespec time1, time2;
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     
         std::cout << "hello world!" << std::endl;
+        std::cout << "testing, testing" << std::endl;
     
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     std::cout << "Hello world message:" << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
