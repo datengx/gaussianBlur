@@ -1,4 +1,6 @@
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "include/helloworld.h"
@@ -19,13 +21,12 @@ complex_mult(const float *a, const float *b, float *r) {
 		"vadd.f32	d2, d2, d3			\n\t"
 		"vst1.64	{d2}, [%0]			\n\t"
 		:: "r"(r), "r"(a), "r"(b)
-		: "d0", "d1", "d2", "d3", "memory"
-		);
+		: "d0", "d1", "d2", "d3", "memory");
 }
 
 //Time difference function
-timespec diff(timespec start, timespec end)
-{
+timespec 
+diff(timespec start, timespec end) {
 	timespec temp;
 	if ((end.tv_nsec-start.tv_nsec)<0) {
 		temp.tv_sec = end.tv_sec-start.tv_sec-1;
@@ -44,10 +45,12 @@ timespec diff(timespec start, timespec end)
  * =====================================================================================
  */
 
-int main ( int argc, char *argv[] )
-{
+int 
+main ( int argc, char *argv[] ) {
+
 	volatile float a[2], b[2], r[2];
 	int i;
+	int flag = 0;
 
 	a[0] = 1;
 	a[1] = 2;
@@ -58,9 +61,13 @@ int main ( int argc, char *argv[] )
 #ifdef NEON
 		complex_mult(a, b, r);
 #else
+		flag = 1;
 		r[0] = (a[0]*b[0] - a[1]*b[1]);
 		r[1] = (a[1]*b[0] - a[0]*b[1]);
+	
+#endif
 	}
+	std::cout << flag << std::endl;
 	std::cout << "Result = (" << r[0] << ", " << r[1] << ")" << std::endl;
 
     timespec time1, time2;
