@@ -29,7 +29,7 @@ dotprod_fff_cortex_a8(const float *a, const float *b, size_t n)
 {
      float s = 0;
 
-    asm volatile ("vmov.f32  q8, #0.0                  \n\t"
+    asm volatile ("vmov.f32  q8, #0.0         \n\t"
          "vmov.f32  q9, #0.0                  \n\t"
          "1:                                  \n\t"
          "subs      %3, %3, #8                \n\t"
