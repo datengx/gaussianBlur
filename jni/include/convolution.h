@@ -86,48 +86,198 @@ expFn_char(const char* a, char* r) {
 
 } // end of expFn_int
 
-void
-asm_sine(const float* a, float r) {
-	float map[8] = {3.14159265, 1.27323954, 0.405284735, 0.0, -3.14159265, 6.28318531, 0.0, 0.0};
+// void
+// asm_sine(const float* a, float r) {
+// 	float map[8] = {3.14159265, 1.27323954, 0.405284735, 0.0, -3.14159265, 
+// 					6.28318531, 0.0, 0.0};
 
-	asm volatile(
-		/* -------------------- move coefficients ------------------------ */
-		"vmov.f32 	s10, %0		\n\t"	
-		"vld1.f32 	d0, [%2]!	\n\t"	// r0 = pi
-		"vld1.f32 	d1, [%2]!	\n\t"	// 1st order coefficient
-		"vld1.f32 	d2, [%2]!	\n\t"	// 2nd order coefficient
-		"vld1.f32	d3, [%2]!	\n\t"
+// 	asm volatile(
+// 		/* -------------------- move coefficients ------------------------ */
+// 		// "vld1.32 	s10, [%0]!		\n\t"	
+// 		"vld1.32 	d0, [%2]!	\n\t"	// r0 = pi
+// 		"vld1.32 	d1, [%2]!	\n\t"	// 1st order coefficient
+// 		"vld1.32 	d2, [%2]!	\n\t"	// 2nd order coefficient
+// 		"vld1.32	d3, [%2]!	\n\t"
 
-		/* -------------------- take input within range ------------------ */
-		".RANGE_DET_LOWER:		\n\t"
-		"vcmp.f32	s10, s4 		\n\t"	// if a > -3.14159265
-		"bgt	.RANGE_DET_UPPER	\n\t"	// branch to upper bound check
-		"vadd.f32 	s10, s10, s5	\n\t"	// else a += 6.28318531
-		"b 		.RANGE_DET_LOWER \n\t"	
+// 		/* -------------------- take input within range ------------------ */
+// 		".RANGE_DET_LOWER:		\n\t"
+// 		"vcmp.f32	s10, s4 		\n\t"	// if a > -3.14159265
+// 		"bgt	.RANGE_DET_UPPER	\n\t"	// branch to upper bound check
+// 		"vadd.f32 	s10, s10, s5	\n\t"	// else a += 6.28318531
+// 		"b 		.RANGE_DET_LOWER \n\t"		// branch back for testing
 
-		".RANGE_DET_UPPER:		\n\t"
-		"vcmp.f32 	s10, s0		\n\t"	// if a > 3.1415926
-		"blt	.COMPUTE	\n\t"	// branch to computation
-		"vsub.f32 	s10, s10, s5	\n\t"	// else a -= 6.28318531
-		"b 		.RANGE_DET_UPPER 	\n\t"
-		/* -------------------- compute subroutine ----------------------- */
-		".COMPUTE:				\n\t"
-		"vcmp.f32 	s10, s6 		\n\t"
-		"vldrgt.f32	s10, [%1]	\n\t"
-		"vldrlt.f32	s10, [%1]	\n\t"
+// 		".RANGE_DET_UPPER:		\n\t"
+// 		"vcmp.f32 	s10, s0		\n\t"		// if a < 3.1415926
+// 		"blt	.COMPUTE		\n\t"		// branch to computation
+// 		"vsub.f32 	s10, s10, s5	\n\t"	// else a -= 6.28318531
+// 		"b 		.RANGE_DET_UPPER 	\n\t"	// branch back for testing
+// 		/* -------------------- compute subroutine ----------------------- */
+// 		".COMPUTE:				\n\t"
+// 		"vcmp.f32 	s10, s6 	\n\t"
+// 		"vldrgt.f32	s10, %1	\n\t"
+// 		"vldrlt.f32	s10, %1	\n\t"
 
-		:: "r"(a), "r"(r), "r"(map)
-		: "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s10", "memory"
-		);
-} // end of asm_sine
+
+// 		:: "r"(a), "r"(r), "r"(map)
+// 		: "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s10", "memory"
+// 		);
+// } // end of asm_sine
 
 void 
 asm_cosine(const float* a, float r) {
+	float map[8] = {3.14159265, 1.27323954, 0.405284735, 0.0, -3.14159265, 
+					6.28318531, 0.0, 0.0};
 
 	asm volatile(
 		""
+
+		:: "r"(a), "r"(r), "r"(map)
+		:	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s10", "memory"
 		);
 } // end of asm_cosine
+
+void 
+asm_tstStall(const float* a, float* r) {
+	float map[5] = {1.0,2.0,3.0,4.0,5.0};
+
+	asm volatile(
+		"VLD1.32	{d0}, [%0]!; "
+		"VLD1.32	{d1}, [%0]!; "
+		/*  ------------------------- test different stall profile ------------------------ */ 
+		"VADDL.U8	q1, d0, d1; " // ADD: q1 = d0 + d1
+		"VST1.8		{d2}, [%1]!; "
+		"VST1.8		{d3}, [%1]!; "
+
+
+		:: "r"(a), "r"(r), "r"(map)
+		:	"q0", "q1", "q2", "q3"
+		);
+} // end of asm_tstStall
+
+void 
+foo(const unsigned char* a, unsigned char* r) {
+	volatile unsigned char map[16] = {1,0,6,0,15,0,20,0,
+									  15,0,6,0,1,0,0,0};
+	asm volatile(
+		"mov 		r0, #16; "	// load step
+		"mov 		r1, #8; "	// Load step
+		"mov 		r2, #1; "	// Store step
+		"VLD1.8		{d0}, [%0], r0; "
+		"VLD1.8		{d1}, [%0], r1; "
+		"VLD1.8		{d3}, [%2]!; "
+		// "VMOV.U8		q1, #0; "
+		/*  ------------------------- test different stall profile ------------------------ */ 
+		// "VADDL.U8	q1, d1, d1; " 		// ADD: q1 = d0 + d1
+		/*
+		"VADDL.U8	q1, d0, d0; "	// q1 = d0 + d0
+		"VADD.U16	q2, q0, q0; "	// q1 = 2 * q1
+		"VADD.U16	q3, q0, q0; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q3, q3, q3; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		*/
+		/*
+		"VADDL.U8	q1, d0, d0; "	// q1 = d0 + d0
+		"VADD.U16	q2, q0, q0; "	// q1 = 2 * q1
+		"VADD.U16	q3, q0, q0; "	// q1 = 2 * q1
+		"VADD.U16	q4, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q3, q3, q3; "	// q1 = 2 * q1
+		"VADD.U16	q4, q4, q4; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q3, q3, q3; "	// q1 = 2 * q1
+		"VADD.U16	q4, q4, q4; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q3, q3, q3; "	// q1 = 2 * q1
+		"VADD.U16	q4, q4, q4; "	// q1 = 2 * q1
+		"VADD.U16	q1, q1, q1; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q3, q3, q3; "	// q1 = 2 * q1
+		"VADD.U16	q4, q4, q4; "	// q1 = 2 * q1
+		*/
+		
+		/*
+		"VADDL.U8	q1, d0, d0; "	// q1 = d0 + d0
+		"VADD.U16	q2, q0, q0; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q2, q2, q2; "	// q1 = 2 * q1
+		"VADD.U16	q1, q2, q2; "	// q1 = 2 * q1
+		*/
+		/*
+		// testing VPADD 
+		"VMULL.U16	q1, d0, d4; "
+		"VMULL.U16	q3, d0, d4; "
+		"VPADD.U32	d8, d2, d3; "
+		"VPADD.U32	d9, d6, d7; " 
+		"VPADD.U32	d1, d8, d9; "
+		*/
+		/*
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d1, d1; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d1, d1; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d1, d1; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d1, d1; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d1, d1; "	// Add: d3 = d2 * 2
+		*/
+		/*
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
+		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
+		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
+		*/
+		"VRSHR.U32	d3, d0, #16; "	// Shift Right Round: d0 >> 8
+		"VRSHR.U32	d4, d1, #16; "   // Shift Right Round: d1 >> 8
+		//"VREV64.32	d4, d3; "		// Swap: s6 <-> s7
+		//"VZIP.8		d3, d4; "	// Zip: 
+		//"VREV32.8	d3, d3; "		// Rotate the result
+		//"VREV32.8	d4, d4; "		// Rotate the result
+		"VST1.8		{d3[0]}, [%1], r2; "
+		"VST1.8		{d3[5]}, [%1], r2; "
+		//"VST1.8		{d4}, [%1], r2"
+		:: "r"(a), "r"(r), "r"(map)
+		:	"q0", "q1", "q2", "q3", "q4"
+		);
+
+}
 
 #endif	/// check NEON definition
 #endif

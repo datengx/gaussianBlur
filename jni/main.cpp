@@ -139,50 +139,70 @@ main ( int argc, char *argv[] ) {
 	b[0] = 3;
 	b[1] = 4;
 
-	volatile float m[12] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-	float det;
+	volatile float m[12] = {1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+	volatile float det[1];
 
 	volatile float f[4] = {1.0, 2.0, 3.0, 4.0};
 	float floatTstOut[4];
 
-	volatile char char_input[16] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-	char char_output[16];
+	volatile char char_input[32] = {1,1,1,1,2,2,2,2,
+									3,3,1,1,6,6,0,0,
+									0,1,0,3,0,5,0,7,
+									0,1,0,3,0,5,0,7};
+	volatile char char_output[16];
 
 	timespec time1, time2;
 
+	volatile float x[1] = {1.0};
+	float sin_x;
+
 #ifdef NEON
-	/// implementation of 3x3 det using neon
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-	for (i=0; i<1e8; i++) {
-		det = matrix_determinant_3x3_neon(m);
-	}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
-	std::cout << "3x3 det neon: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
+	// /// implementation of 3x3 det using neon
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	// for (i=0; i<1e8; i++) {
+	// 	det = matrix_determinant_3x3_neon(m);
+	// }
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+	// std::cout << "3x3 det neon: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
 	
-	/// implementation of 3x3 det using regular C
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-	for (i=0; i<1e8; i++) {
-		det = matrix_determinant_3x3_C(m);
-	}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
-	std::cout << "3x3 det C: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
+	// /// implementation of 3x3 det using regular C
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	// for (i=0; i<1e8; i++) {
+	// 	det = matrix_determinant_3x3_C(m);
+	// }
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+	// std::cout << "3x3 det C: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
 
-	/// implementation of float test function
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-	for (i=0; i<1e8; i++) {
-		expFn_float(f, floatTstOut);
-	}
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
-	std::cout << "float test function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
+	// /// implementation of float test function
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	// for (i=0; i<1e8; i++) {
+	// 	expFn_float(f, floatTstOut);
+	// }
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+	// std::cout << "float test function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
 
-	/// implementation of char test function
-	/// implementation of float test function
+	// /// implementation of char test function
+	// /// implementation of float test function
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	// for (i=0; i<1e8; i++) {
+	// 	expFn_char(char_input, char_output);
+	// }
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+	// std::cout << "char test function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
+
+	/// implementation of sin function
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	// for (i=0; i<10; i++) {
+	// 	asm_sine(x, sin_x);
+	// }
+	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+	// std::cout << "asm_sine function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-	for (i=0; i<1e8; i++) {
-		expFn_char(char_input, char_output);
+	for (i=0; i < 1e8; i++) {
+		foo(char_input, char_output);
 	}
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
-	std::cout << "char test function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
+	std::cout << "foo function takes: " << (double)(diff(time1, time2).tv_nsec)/1000000 << " ms\n";
 
 #else
 
@@ -204,6 +224,11 @@ main ( int argc, char *argv[] ) {
     												   << static_cast<int>(char_output[8] )<< ", " << static_cast<int>(char_output[9] )<< ", "
     												   << static_cast<int>(char_output[10]) << ", " << static_cast<int>(char_output[11]) << ", "
     												   << static_cast<int>(char_output[12]) << ", " << static_cast<int>(char_output[13]) << ", "
-    												   << static_cast<int>(char_output[14]) << ", " << static_cast<int>(char_output[15]) << std::endl; 
+    												   << static_cast<int>(char_output[14]) << ", " << static_cast<int>(char_output[15]) << std::endl;
+    /// execution result: asm sine function
+    std::cout << "asm_sine function generates output: " << sin_x << std::endl; 
+    /// execution time result: asm_tstStall function
+    std::cout << "asm_tstStall function generates output: " << det[0] << std::endl;
+
 	return 0;
 }				/* ----------  end of function main  ---------- */
