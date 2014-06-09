@@ -30,7 +30,6 @@ expFn_float(const float* a, float* r) {
 		"VLD1.32	d1, [%0]!		\n\t"
 		"VADD.f32	d0, d0, d3		\n\t"
 
-		
 		"VST1.64	{d0,d1}, [%1]		\n\t"
 
 
@@ -161,10 +160,12 @@ foo(const unsigned char* a, unsigned char* r) {
 	asm volatile(
 		"mov 		r0, #16; "	// load step
 		"mov 		r1, #8; "	// Load step
-		"mov 		r2, #1; "	// Store step
-		"VLD1.8		{d0}, [%0], r0; "
+		"mov 		r2, #8; "	// Store step
+		"VLD1.8		{d0}, [%0], r1; "
 		"VLD1.8		{d1}, [%0], r1; "
 		"VLD1.8		{d3}, [%2]!; "
+		"VMOV.U8	d3, #0; "
+		"VMOV.U8	q3, #0; "
 		// "VMOV.U8		q1, #0; "
 		/*  ------------------------- test different stall profile ------------------------ */ 
 		// "VADDL.U8	q1, d1, d1; " 		// ADD: q1 = d0 + d1
@@ -264,14 +265,15 @@ foo(const unsigned char* a, unsigned char* r) {
 		"VMLA.U8	d2, d0, d0; "	// Add: d2 = d0 * 2
 		"VMLA.U8	d1, d2, d2; "	// Add: d3 = d2 * 2
 		*/
-		"VRSHR.U32	d3, d0, #16; "	// Shift Right Round: d0 >> 8
-		"VRSHR.U32	d4, d1, #16; "   // Shift Right Round: d1 >> 8
+		//"VRSHR.U32	d3, d0, #16; "	// Shift Right Round: d0 >> 8
+		//"VRSHR.U32	d4, d1, #16; "   // Shift Right Round: d1 >> 8
 		//"VREV64.32	d4, d3; "		// Swap: s6 <-> s7
 		//"VZIP.8		d3, d4; "	// Zip: 
 		//"VREV32.8	d3, d3; "		// Rotate the result
 		//"VREV32.8	d4, d4; "		// Rotate the result
-		"VST1.8		{d3[0]}, [%1], r2; "
-		"VST1.8		{d3[5]}, [%1], r2; "
+		"VMLAL.U8	q3, d0, d0; "	// Multiply Accumulate Long.
+		"VST1.8		{d6}, [%1]!; "
+		"VST1.8		{d7}, [%1]!; "
 		//"VST1.8		{d4}, [%1], r2"
 		:: "r"(a), "r"(r), "r"(map)
 		:	"q0", "q1", "q2", "q3", "q4"

@@ -1,5 +1,8 @@
 #include <iostream>
 #include <time.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "include/helloworld.h"
 #include "include/convolution.h"
@@ -156,6 +159,9 @@ main ( int argc, char *argv[] ) {
 	volatile float x[1] = {1.0};
 	float sin_x;
 
+	cv::Mat img;
+	img.create(7,7,CV_8U);
+
 #ifdef NEON
 	// /// implementation of 3x3 det using neon
 	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
@@ -198,7 +204,7 @@ main ( int argc, char *argv[] ) {
 	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
 	// std::cout << "asm_sine function: " << (double)(diff(time1,time2).tv_nsec)/1000000 << " ms\n";
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
-	for (i=0; i < 1e8; i++) {
+	for (i=0; i < 1; i++) {
 		foo(char_input, char_output);
 	}
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
