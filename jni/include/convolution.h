@@ -161,11 +161,13 @@ foo(const unsigned char* a, unsigned char* r) {
 		"mov 		r0, #16; "	// load step
 		"mov 		r1, #8; "	// Load step
 		"mov 		r2, #8; "	// Store step
+		"mov 		r3, #1; "
 		"VLD1.8		{d0}, [%0], r1; "
 		"VLD1.8		{d1}, [%0], r1; "
 		"VLD1.8		{d3}, [%2]!; "
-		"VMOV.U8	d3, #0; "
-		"VMOV.U8	q3, #0; "
+		"VMOV.I8	d3, #1;	"
+		"VMOV.I8	d4, #1; "
+		"VMOV.I8	d20, #0; "
 		// "VMOV.U8		q1, #0; "
 		/*  ------------------------- test different stall profile ------------------------ */ 
 		// "VADDL.U8	q1, d1, d1; " 		// ADD: q1 = d0 + d1
@@ -271,9 +273,16 @@ foo(const unsigned char* a, unsigned char* r) {
 		//"VZIP.8		d3, d4; "	// Zip: 
 		//"VREV32.8	d3, d3; "		// Rotate the result
 		//"VREV32.8	d4, d4; "		// Rotate the result
-		"VMLAL.U8	q3, d0, d0; "	// Multiply Accumulate Long.
-		"VST1.8		{d6}, [%1]!; "
-		"VST1.8		{d7}, [%1]!; "
+		//"VMLAL.U8	q3, d0, d0; "	// Multiply Accumulate Long.
+		"VMULL.U16 	q3, d3, d4; "	// Multiply Long
+
+		/* 
+		*	Useful parameters: d20 = 0
+		*	
+		*/
+		"VPADD.U32  d8, d6, d7; "
+		"VST1.8		{d8}, [%1]!; "
+		"VST1.8		{d20}, [%1]!; "
 		//"VST1.8		{d4}, [%1], r2"
 		:: "r"(a), "r"(r), "r"(map)
 		:	"q0", "q1", "q2", "q3", "q4"

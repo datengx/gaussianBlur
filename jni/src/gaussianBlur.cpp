@@ -53,14 +53,14 @@ void GaussianBlurNeon(unsigned char* src, unsigned char* dst, int h, int w) {
     int step = w;
     int step2 = 0;
     dst += (3 * w) + 3;
-    int strips_num = (int)(w - 6) / 2;
-    int numofiterations = (int)(h - 6);
-        // Loop for computing Gaussian Blur
-        for (int i = strips_num; i--;) {
-            GaussianBlurStrip(src, dst, w, step, step2, numofiterations);
-            src += 2;
-            dst += 2;
-        }
+    int strips_num = (w - 6) / 2;
+    int numofiterations = (h - 6);
+    // Loop for computing Gaussian Blur
+    for (int i = strips_num; i--;) {
+        GaussianBlurStrip(src, dst, w, step, step2, numofiterations);
+        src += 2;
+        dst += 2;
+    }
 } // End of GaussianBlur
 
 /// ARM NEON based implementation of constructing one strip of gaussian blurred pixels 
@@ -74,34 +74,38 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     asm volatile(
     /* ------------------------------------------- Load Parameters ------------------------------------------ */
     "mov        r0, %2; "       // Move: r0 = step down for loading next line of image
+    "mov        r1, %0; "       // Move: r 1 = load pointer
     "mov        r2, %4; "       // Move: r2 = numofiterations to compute one strip of gaussian blur
-    "mov        r3, #1; "       // Move: r3 = step after storing the first result
+    "mov        r3, %1; "       // Move: r3 = store pointer
     "mov        r4, %6; "       // Move: r4 = step after storing the second result
-    "VLD1.8    {d14,d15}, [%5]!; "    // Load: q7 = (1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0, 0,0)
-    "VLD1.8    {d16,d17}, [%5]; "     // Load: q8 = (0,0, 1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0)
+    "VLD1.8     {d14,d15}, [%5]!; "    // Load: q7 = (1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0, 0,0)
+    "VLD1.8     {d16,d17}, [%5]!; "     // Load: q8 = (0,0, 1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0)
+    "VMOV.I8    d7, #6; "
+    "VMOV.I8    d8, #15; "
+    "VMOV.I8    d9, #20; "
     /* ------------------------------------ Load Line 0 ~ 6 pixels (0-6) ------------------------------------ */    
-    "VLD1.8     d0, [%[idx0]], r0; " // Load: d0 = pixels 0 ~ 7 of Line 0
-    "VLD1.8     d1, [%[idx0]], r0; " // Load: d1 = pixels 0 ~ 7 of Line 1
-    "VLD1.8     d2, [%[idx0]], r0; " // Load: d2 = pixels 0 ~ 7 of Line 2 
-    "VLD1.8     d3, [%[idx0]], r0; " // Load: d3 = pixels 0 ~ 7 of Line 3
-    "VLD1.8     d4, [%[idx0]], r0; " // Load: d4 = pixels 0 ~ 7 of Line 4
-    "VLD1.8     d5, [%[idx0]], r0; " // Load: d5 = pixels 0 ~ 7 of Line 5
+    "VLD1.8     d0, [r1], r0; " // Load: d0 = pixels 0 ~ 7 of Line 0
+    "VLD1.8     d1, [r1], r0; " // Load: d1 = pixels 0 ~ 7 of Line 1
+    "VLD1.8     d2, [r1], r0; " // Load: d2 = pixels 0 ~ 7 of Line 2 
+    "VLD1.8     d3, [r1], r0; " // Load: d3 = pixels 0 ~ 7 of Line 3
+    "VLD1.8     d4, [r1], r0; " // Load: d4 = pixels 0 ~ 7 of Line 4
+    "VLD1.8     d5, [r1], r0; " // Load: d5 = pixels 0 ~ 7 of Line 5
     /* ------------------------------Loop for each next 1 lines -------------------------------------------- */
     ".loop:;"
-    "VLD1.8     d6, [%[idx0]]; " // Load: d6 = pixels 0 ~ 7 of Line 6
-    "PLD        [%[idx0], r0]; "     // Preload: one line in cache
-    "sub %[numofiterations], %[numofiterations], #1;"   // decrement: numofinteration -= 1;
+    "VLD1.8     d6, [r1], r0; " // Load: d6 = pixels 0 ~ 7 of Line 6
+    "PLD        [r1]; "         // Preload: one line in cache
+    "sub        r2, r2, #1; "   // decrement: numofinteration -= 1;
     /* ------------------------------ Vertical Convolution ----------------------------------- */
     "VADDL.U8   q11, d0, d6; "  // Add Long: q11{d22, d23} = d0 + d6 (q11 = Line0[0:7] + Line6[0:7])
-    "VMLAL.U16   q11, d1, d7[1]; "// Multiply Accumulate Long: q11 += d1 * d7[1] (q11 += d1 * 6, 6 is a scalar)
+    "VMLAL.U8   q11, d1, d7; "// Multiply Accumulate Long: q11 += d1 * d7[1] (q11 += d1 * 6, 6 is a scalar)
     "VMOV.U8    d0, d1; "       // Shift Up: Line 1 -> new Line 0 
-    "VMLAL.U16  q11, d2, d7[2]; " // Multiply Accumulate Long: q11 += d2 * d7[2] (q11 += d2 * 15, 15 is a scalar)
+    "VMLAL.U8   q11, d2, d8; " // Multiply Accumulate Long: q11 += d2 * d7[2] (q11 += d2 * 15, 15 is a scalar)
     "VMOV.U8    d1, d2; "       //Shift Up: Line 2 -> new Line 1
-    "VMLAL.U16  q11, d3, d7[3]; " // Multiply Accumulate Long: q11 += d3 * d7[3] (q11 += d3 * 20, 20 is a scalar)
+    "VMLAL.U8   q11, d3, d9; " // Multiply Accumulate Long: q11 += d3 * d7[3] (q11 += d3 * 20, 20 is a scalar)
     "VMOV.U8    d2, d3; "       // Shift Up: Line 3 -> new Line 2
-    "VMLAL.U16  q11, d4, d7[2]; " // Multiply Accumulate Long: q11 += d4 * d7[2] (q11 += d4 * 15, 15 is a scalar)
+    "VMLAL.U8   q11, d4, d8; " // Multiply Accumulate Long: q11 += d4 * d7[2] (q11 += d4 * 15, 15 is a scalar)
     "VMOV.U8    d3, d4; "       // Shift Up: Line 4 -> new Line 3
-    "VMLAL.U16  q11, d5, d7[1]; " // Multiply Accumulate Long: q11 += d5 * d7[1] (q11 += d5 * 6, 6 is a scalar)
+    "VMLAL.U8   q11, d5, d7; " // Multiply Accumulate Long: q11 += d5 * d7[1] (q11 += d5 * 6, 6 is a scalar)
     "VMOV.U8    d4, d5; "       // Shift Up: Line5 -> new Line 4
     "VMOV.U8    d5, d6; "       // Shift Up: Line6 -> new Line 5
     /* ------------------------------ Horizontal Convolution (1st Result) ----------------------------------- */
@@ -119,15 +123,15 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     "VPADD.U32  d29, d10, d11; " // Pairwise Add: d29(s58=s20+s21, s59=s22+s23) (d29=(vertical[1]+6*vertical[2]+15*vertical[3]+20*vertical[4],
                                  //                                                     15*vertical[5]+6*vertical[6]+vertical[7]
     /* ------------------------------ Store 2 Results ----------------------------------- */
-    "VPADD.U32  d30, d28, d29; " // Pairwise Add: d30=(v[0]+6*v[1]+15*v[2]+20*v[3]+15v[4]+6v[5]+v[6],v[1]+6*v[2]+15*v[3]+20*v[4]+15v[5]+6v[6]+v[7])
-    "VRSHR.U32  d30, d30, #2; "  // Shift Right Round: d30 = d30 >> 12 (d30 / 4096)
-    "VST1.8     {d30[0]}, [%[idx1]], r3; " // Store: 1st Result
-    "VST1.8     {d31[5]}, [%[idx1]], r4; " // Store: 2nd Result
+    "VPADD.U32  d30, d28, d29; " // Pairwise Add: d30=(v[0]+6*v[1]+15*v[2]+20*v[3]+15v[4]+6*v[5]+v[6],v[1]+6*v[2]+15*v[3]+20*v[4]+15v[5]+6v[6]+v[7])
+    "VRSHR.U32  d30, d30, #12; "  // Shift Right Round: d30 = d30 >> 12 (d30 / 4096)
+    "VST1.8     {d30[0]}, [r3]!; " // Store: 1st Result
+    "VST1.8     {d30[4]}, [r3], r4; " // Store: 2nd Result
     "cmp        r2, #0; "       // Compare: (numofiteration == 0)?
     "bne        .loop; "        // Branch If Not Zero; to .loop
 
-    :: [idx0] "r"(src), [idx1] "r"(dst), "r"(step), "r"(step2), [numofiterations] "r"(numofiterations), "r"(map), "r"(w-1)
-    : "q0", "q1", "q2", "q3", "q6", "q7", "q8", "q10", "q11", "q12", "q13", "q14", "q15"
+    :: "r"(src), "r"(dst), "r"(step), "r"(step2), "r"(numofiterations), "r"(map), "r"(w-1)
+    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10", "q11", "q12", "q13", "q14", "q15", "r0", "r1", "r2", "r3", "r4", "r5" 
     );
     /* ------------------------------------ End of Assembly ---------------------------------------------- */
 } // End of GaussianBlurStrip

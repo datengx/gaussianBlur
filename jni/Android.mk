@@ -12,7 +12,7 @@ LOCAL_NEON_CFLAGS := -mfloat-abi=softfp -mfpu=neon -march=armv7
 LOCAL_CFLAGS +=  -Ofast -funroll-loops -fmodulo-sched -fmodulo-sched-allow-regmoves 
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE    := test
-LOCAL_SRC_FILES := main.cpp ./src/gaussianBlur.cpp
+LOCAL_SRC_FILES := test.cpp ./src/gaussianBlur.cpp
 LOCAL_PRELINK_MODULE:=false
 
 include $(BUILD_EXECUTABLE)
