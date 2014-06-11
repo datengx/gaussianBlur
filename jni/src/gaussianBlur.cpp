@@ -109,16 +109,17 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     /* ------------------------------ Horizontal Convolution (1st Result) ----------------------------------- */
     "VMULL.U16  q12, d22, d14; " // Multiply Long: q12 = d22 * d14 (q12=(1*vertical[0], 6*vertical[1], 15*vertical[2], 20*vertical[3]))
     "VMULL.U16  q13, d23, d15; " // Multiply Long: q13 = d23 * d15 (q13=(15*vertical[4], 6*vertical[5], 1*vertical[6], 0))
+    "VMULL.U16  q6, d22, d16; " // Multiply Long: q6 = d22 * d16 (q6=(1*vertical[1], 6*vertical[2], 15*vertical[3], 20*vertical[4]))
+    "VMULL.U16  q10, d23, d17; " // Multiply Long: q10 = d23 * d17 (q10=(15*veitical[5], 6*vertical[6], veitical[7], 0))
+
     "VPADD.U32  d10, d24, d25; " // Pairwise Add: d10(s20=s48+s49, s21=s50+s51) (d10=(vertical[0]+6*vertical[1], 15*vertical[2]+20*vertical[3]))
     "VPADD.U32  d11, d26, d27; " // Pairwise Add: d11(s22=s52+s53, s23=s54+s55) (d11=(15*vertical[4]+6*vertical[5], vertical[6]))
     "VPADD.U32  d28, d10, d11; " // Pairwise Add: d28(s56=s20+s21, s57=s22+s23) (d28=(vertical[0]+6*vertical[1]+15*vertical[2]+20*vertical[3],
                                  //                                                     15*vertical[4]+6*vertical[5]+vertical[6]
     /* ------------------------------ Horizontal Convolution (2nd Result) ----------------------------------- */
-    "VMULL.U16  q12, d22, d16; " // Multiply Long: q12 = d22 * d16 (q12=(1*vertical[1], 6*vertical[2], 15*vertical[3], 20*vertical[4]))
-    "VMULL.U16  q13, d23, d17; " // Multiply Long: q13 = d23 * d17 (q13=(15*veitical[5], 6*vertical[6], veitical[7], 0))
-    "VPADD.U32  d10, d24, d25; " // Pairwise Add: d10(s20=s48+s49, s21=s50+s51) (d10=(vertical[1]+6*vertical[2], 15*vertical[3]*20*vertical[4]))
-    "VPADD.U32  d11, d26, d27; " // Pairwise Add: d11(s22=s52+s53, s23=s54+s55) (d11=(15*vertical[5]+6*vertical[6], vertical[7]))
-    "VPADD.U32  d29, d10, d11; " // Pairwise Add: d29(s58=s20+s21, s59=s22+s23) (d29=(vertical[1]+6*vertical[2]+15*vertical[3]+20*vertical[4],
+    "VPADD.U32  d30, d12, d13; " // Pairwise Add: d30(s60=s24+s25, s61=s26+s27) (d30=(vertical[1]+6*vertical[2], 15*vertical[3]*20*vertical[4]))
+    "VPADD.U32  d31, d20, d21; " // Pairwise Add: d31(s62=s52+s53, s63=s54+s55) (d31=(15*vertical[5]+6*vertical[6], vertical[7]))
+    "VPADD.U32  d29, d30, d31; " // Pairwise Add: d29(s58=s60+s61, s59=s62+s63) (d29=(vertical[1]+6*vertical[2]+15*vertical[3]+20*vertical[4],
                                  //                                                     15*vertical[5]+6*vertical[6]+vertical[7]
     /* ------------------------------ Store 2 Results ----------------------------------- */
     "VPADD.U32  d30, d28, d29; " // Pairwise Add: d30=(v[0]+6*v[1]+15*v[2]+20*v[3]+15v[4]+6*v[5]+v[6],v[1]+6*v[2]+15*v[3]+20*v[4]+15v[5]+6v[6]+v[7])
