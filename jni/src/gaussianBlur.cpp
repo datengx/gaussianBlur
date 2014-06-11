@@ -51,13 +51,12 @@ void GaussianBlurC(unsigned char* src, unsigned char* dst, int height, int width
 void GaussianBlurNeon(unsigned char* src, unsigned char* dst, int h, int w) {
     // Parameters for GaussianBlurStrip
     int step = w;
-    int step2 = 0;
     dst += (3 * w) + 3;
     int strips_num = (w - 6) / 2;
     int numofiterations = (h - 6);
     // Loop for computing Gaussian Blur
     for (int i = strips_num; i--;) {
-        GaussianBlurStrip(src, dst, w, step, step2, numofiterations);
+        GaussianBlurStrip(src, dst, w, step, numofiterations);
         src += 2;
         dst += 2;
     }
@@ -65,8 +64,8 @@ void GaussianBlurNeon(unsigned char* src, unsigned char* dst, int h, int w) {
 
 /// ARM NEON based implementation of constructing one strip of gaussian blurred pixels 
 void GaussianBlurStrip(unsigned char* src, unsigned char* dst, 
-                        int w, int step, int step2, int numofiterations) {
-    volatile unsigned char map[32] = {1,0,6,0,15,0,20,0,
+                        int w, int step, int numofiterations) {
+    volatile unsigned char map[40] = {1,0,6,0,15,0,20,0,
                                       15,0,6,0,1,0,0,0,
                                       0,0,1,0,6,0,15,0,
                                       20,0,15,0,6,0,1,0};
@@ -75,11 +74,11 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     /* ------------------------------------------- Load Parameters ------------------------------------------ */
     "mov        r0, %2; "       // Move: r0 = step down for loading next line of image
     "mov        r1, %0; "       // Move: r 1 = load pointer
-    "mov        r2, %4; "       // Move: r2 = numofiterations to compute one strip of gaussian blur
+    "mov        r2, %3; "       // Move: r2 = numofiterations to compute one strip of gaussian blur
     "mov        r3, %1; "       // Move: r3 = store pointer
-    "mov        r4, %6; "       // Move: r4 = step after storing the second result
-    "VLD1.8     {d14,d15}, [%5]!; "    // Load: q7 = (1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0, 0,0)
-    "VLD1.8     {d16,d17}, [%5]!; "     // Load: q8 = (0,0, 1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0)
+    "mov        r4, %5; "       // Move: r4 = step after storing the second result
+    "VLD1.8     {d14,d15}, [%4]!; "    // Load: q7 = (1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0, 0,0)
+    "VLD1.8     {d16,d17}, [%4]!; "     // Load: q8 = (0,0, 1,0, 6,0, 15,0, 20,0, 15,0, 6,0, 1,0)
     "VMOV.I8    d7, #6; "
     "VMOV.I8    d8, #15; "
     "VMOV.I8    d9, #20; "
@@ -94,7 +93,6 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     ".loop:;"
     "VLD1.8     d6, [r1], r0; " // Load: d6 = pixels 0 ~ 7 of Line 6
     "PLD        [r1]; "         // Preload: one line in cache
-    "sub        r2, r2, #1; "   // decrement: numofinteration -= 1;
     /* ------------------------------ Vertical Convolution ----------------------------------- */
     "VADDL.U8   q11, d0, d6; "  // Add Long: q11{d22, d23} = d0 + d6 (q11 = Line0[0:7] + Line6[0:7])
     "VMLAL.U8   q11, d1, d7; "// Multiply Accumulate Long: q11 += d1 * d7[1] (q11 += d1 * 6, 6 is a scalar)
@@ -127,10 +125,10 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     "VRSHR.U32  d30, d30, #12; "  // Shift Right Round: d30 = d30 >> 12 (d30 / 4096)
     "VST1.8     {d30[0]}, [r3]!; " // Store: 1st Result
     "VST1.8     {d30[4]}, [r3], r4; " // Store: 2nd Result
-    "cmp        r2, #0; "       // Compare: (numofiteration == 0)?
+    "subs        r2, r2, #1; "   // decrement: numofinteration -= 1;
     "bne        .loop; "        // Branch If Not Zero; to .loop
 
-    :: "r"(src), "r"(dst), "r"(step), "r"(step2), "r"(numofiterations), "r"(map), "r"(w-1)
+    :: "r"(src), "r"(dst), "r"(step), "r"(numofiterations), "r"(map), "r"(w-1)
     : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10", "q11", "q12", "q13", "q14", "q15", "r0", "r1", "r2", "r3", "r4", "r5" 
     );
     /* ------------------------------------ End of Assembly ---------------------------------------------- */
