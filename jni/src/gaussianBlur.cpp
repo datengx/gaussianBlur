@@ -126,7 +126,7 @@ void GaussianBlurStrip(unsigned char* src, unsigned char* dst,
     "VRSHR.U32  d30, d30, #12; "  // Shift Right Round: d30 = d30 >> 12 (d30 / 4096)
     "VST1.8     {d30[0]}, [r3]!; " // Store: 1st Result
     "VST1.8     {d30[4]}, [r3], r4; " // Store: 2nd Result
-    "subs        r2, r2, #1; "   // decrement: numofinteration -= 1;
+    "subs        r2, r2, #1; "   // decrement: numofiteration -= 1;
     "bne        .loop; "        // Branch If Not Zero; to .loop
 
     :: "r"(src), "r"(dst), "r"(step), "r"(numofiterations), "r"(map), "r"(w-1)

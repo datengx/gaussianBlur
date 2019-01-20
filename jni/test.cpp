@@ -77,12 +77,13 @@ main ( int argc, char *argv[] ) {
 	timespec time1, time2;
 	int top,left,bottom,right;
 
-	dst.create(480,640, CV_8U);
-	src = cv::imread("/data/data/test/00000000.pgm", CV_LOAD_IMAGE_GRAYSCALE);
+	
+	src = cv::imread("/home/pi/Pictures/Mi-Max-Cam-HDR-640x480.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 	// cv::GaussianBlur(src, array, cv::Size(7,7), 2, 2);
 
 	/* ------------------------------------- Testing GaussianBlur Neon ----------------------------------------------- */
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
+	dst.create(480,640, CV_8U);
 	for (int i=0; i < 10; i++) {
 		EyeMARS::GaussianBlurNeon(src.data,dst.data,480,640);
 	}
@@ -108,8 +109,8 @@ main ( int argc, char *argv[] ) {
 	std::cout << std::endl;
 	*/
 	/* -------------------------------------- Write Output -------------------------------------------------------------- */
-	cv::imwrite("/data/data/test/out.pgm", dst);
-	cv::imwrite("/data/data/test/out_cv.pgm", dst_cv);
+	cv::imwrite("./out.jpg", dst);
+	cv::imwrite("./out_cv.jpg", dst_cv);
 	
 	return 0;
 } // End of Fn: Main
